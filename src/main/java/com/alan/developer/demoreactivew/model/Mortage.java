@@ -1,0 +1,16 @@
+package com.alan.developer.demoreactivew.model;
+
+import lombok.Builder;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+public class Mortage {
+
+    private String ownerId;
+    private LocalDateTime creationDate;
+    private Double amount;
+    private Integer years;
+}
