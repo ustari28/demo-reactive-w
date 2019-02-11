@@ -51,19 +51,18 @@ public class DemoReactiveController {
     @GetMapping("account/parallel")
     public Mono<Void> acountParallel() {
         accountService.findByOwnerId("alan")
-                .flatMap(a -> Flowable.just(a)
-                        .subscribeOn(Schedulers.computation())
-                        .map(c -> accountService.globalPositionReactive(c)))
-                .blockingSubscribe();
+                .flatMap(a -> accountService.globalPositionReactive(a)).collectList().block();
+        //.blockingSubscribe();
         return Mono.empty();
     }
 
     @GetMapping("account/sync")
     public Mono<Void> acountSync() {
         accountService.findByOwnerId("alan")
-                .subscribeOn(Schedulers.computation())
+                .subscribeOn(reactor.core.scheduler.Schedulers.elastic())
                 .map(c -> accountService.globalPositionSync(c))
-                .blockingSubscribe();
+                .blockLast();
+        //.blockingSubscribe();
         return Mono.empty();
     }
 
