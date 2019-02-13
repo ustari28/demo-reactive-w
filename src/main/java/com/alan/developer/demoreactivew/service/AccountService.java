@@ -24,10 +24,13 @@ public class AccountService {
 
     public Flux<Account> findByOwnerId(final String ownerId) {
         final List<Account> accounts = new ArrayList<>();
-        IntStream.range(0, 10).forEach(x ->
-                accounts.add(Account.builder().Id(String.valueOf(x)).ownerId("500").amountAvailabe(new Random().nextDouble()).build())
-        );
-        return Flux.fromIterable(accounts);
+
+        return Flux.create(s -> {
+            IntStream.range(0, 10).forEach(x ->
+                    s.next(Account.builder().Id(String.valueOf(x)).ownerId("500").amountAvailabe(new Random().nextDouble()).build())
+            );
+            s.complete();
+        });
     }
 
     public Mono<GlobalPosition> globalPositionSync(final Account account) {
@@ -54,52 +57,51 @@ public class AccountService {
                 .creationDate(LocalDateTime.now())
                 .ownerId(account.getOwnerId())
                 .years(30).build();
-        return Mono.just(GlobalPosition.builder()
+        return Mono.create(s -> s.success(GlobalPosition.builder()
                 .account(account)
                 .loans(loans)
                 .mortage(mortage)
-                .build());
+                .build()));
     }
 
-    public Mono<GlobalPosition> globalPositionReactive(final Account account) {
-        Mono<Mortage> mMortage = findMortageByOwnerId(account);
-        Flux<Loan> mLoans = findLoansByOwnerId(account);
-        log.info("requesting mortage and loans");
-        List<Loan> lLoans = mLoans.toStream().collect(Collectors.toList());
-        Mortage m = mMortage.block();
-        log.info("waiting for async elements");
-        return Mono.just(GlobalPosition.builder()
+    public GlobalPosition globalPositionReactive(final Account account) {
+        log.info("Account " + account.getId());
+        List<Loan> loans = findLoansByOwnerId(account);
+        Mortage mortage = findMortageByOwnerId(account);
+
+        return GlobalPosition.builder()
                 .account(account)
-                .loans(lLoans)
-                .mortage(m)
-                .build());
+                .loans(loans)
+                .mortage(mortage)
+                .build();
     }
 
-    public Flux<Loan> findLoansByOwnerId(final Account account) {
+    public List<Loan> findLoansByOwnerId(final Account account) {
         log.info("Requesting loans");
         try {
             Thread.sleep(random.nextInt(5000));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        return Flux.fromIterable(IntStream.range(0, 10).mapToObj(i ->
+        return IntStream.range(0, 10).mapToObj(i ->
                 Loan.builder().ownerId(account.getOwnerId())
                         .amount(450D)
                         .creationDate(LocalDateTime.now())
-                        .years(10).build()).collect(Collectors.toList()));
+                        .years(10).build()
+        ).collect(Collectors.toList());
     }
 
-    public Mono<Mortage> findMortageByOwnerId(final Account account) {
+    public Mortage findMortageByOwnerId(final Account account) {
         log.info("Requesting mortage");
-        try {
-            Thread.sleep(random.nextInt(5000));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return Mono.just(Mortage.builder()
+        /**try {
+         Thread.sleep(random.nextInt(5000));
+         } catch (InterruptedException e) {
+         e.printStackTrace();
+         }*/
+        return Mortage.builder()
                 .amount(20000D)
                 .creationDate(LocalDateTime.now())
                 .ownerId(account.getOwnerId())
-                .years(30).build());
+                .years(30).build();
     }
 }

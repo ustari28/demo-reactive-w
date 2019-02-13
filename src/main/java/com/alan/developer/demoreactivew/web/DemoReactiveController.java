@@ -1,5 +1,6 @@
 package com.alan.developer.demoreactivew.web;
 
+import com.alan.developer.demoreactivew.model.GlobalPosition;
 import com.alan.developer.demoreactivew.model.Greeting;
 import com.alan.developer.demoreactivew.service.AccountService;
 import io.reactivex.Flowable;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -31,10 +33,12 @@ public class DemoReactiveController {
     @GetMapping("parallel")
     public Mono<Void> parallel() {
         Flowable.range(1, 10)
-                .flatMap(v ->
-                        Flowable.just(v)
-                                .subscribeOn(Schedulers.computation())
-                                .map(w -> multix(w))
+                .flatMap(v -> {
+                            log.info("Thread name " + Thread.currentThread().getName());
+                            return Flowable.just(v)
+                                    .subscribeOn(Schedulers.computation())
+                                    .map(w -> multix(w));
+                        }
                 ).blockingSubscribe(x -> log.info("result:" + x));
         return Mono.empty();
     }
@@ -49,11 +53,25 @@ public class DemoReactiveController {
     }
 
     @GetMapping("account/parallel")
-    public Mono<Void> acountParallel() {
-        accountService.findByOwnerId("alan")
-                .flatMap(a -> accountService.globalPositionReactive(a)).collectList().block();
-        //.blockingSubscribe();
-        return Mono.empty();
+    public Flux<GlobalPosition> acountParallel() {
+
+        /**ThreadPoolTaskExecutor tf = new ThreadPoolTaskExecutor();
+         tf.setCorePoolSize(10);
+         tf.setMaxPoolSize(20);
+         tf.setQueueCapacity(40);
+         tf.setDaemon(false);
+         tf.setThreadGroupName("parallel-rx");
+         tf.setKeepAliveSeconds(5);*/
+        return Flux.create(s -> accountService.findByOwnerId("alan").subscribeOn(reactor.core.scheduler.Schedulers.newParallel("my-paralallel", 5))
+                .flatMap(c -> {
+                    System.out.println("Thread name " + Thread.currentThread().getName());
+                    return Flux.just(c).subscribeOn(reactor.core.scheduler.Schedulers.parallel()).map(ac -> accountService.globalPositionReactive(ac));
+                }).subscribe(f -> {
+                    System.out.println("Thread name " + Thread.currentThread().getName() + " - account " + f.getAccount().getId());
+                    s.next(f);
+                    s.complete();
+                })
+        );
     }
 
     @GetMapping("account/sync")
