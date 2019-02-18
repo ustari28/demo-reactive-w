@@ -26,7 +26,7 @@ public class AccountService {
         final List<Account> accounts = new ArrayList<>();
 
         return Flux.create(s -> {
-            IntStream.range(0, 10).forEach(x ->
+            IntStream.range(0, 100).forEach(x ->
                     s.next(Account.builder().Id(String.valueOf(x)).ownerId("500").amountAvailabe(new Random().nextDouble()).build())
             );
             s.complete();
@@ -66,6 +66,7 @@ public class AccountService {
 
     public GlobalPosition globalPositionReactive(final Account account) {
         log.info("Account " + account.getId());
+
         List<Loan> loans = findLoansByOwnerId(account);
         Mortage mortage = findMortageByOwnerId(account);
 
@@ -93,11 +94,11 @@ public class AccountService {
 
     public Mortage findMortageByOwnerId(final Account account) {
         log.info("Requesting mortage");
-        /**try {
-         Thread.sleep(random.nextInt(5000));
-         } catch (InterruptedException e) {
-         e.printStackTrace();
-         }*/
+        try {
+            Thread.sleep(random.nextInt(5000));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         return Mortage.builder()
                 .amount(20000D)
                 .creationDate(LocalDateTime.now())

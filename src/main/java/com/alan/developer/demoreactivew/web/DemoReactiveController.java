@@ -12,8 +12,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Log
 @RequestMapping("/v1/demo")
@@ -23,6 +25,8 @@ public class DemoReactiveController {
     private Flowable flowable;
     @Autowired
     private AccountService accountService;
+    @Autowired
+    private Scheduler scheduler;
 
     private DemoReactiveController() {
         flowable = Flowable.fromCallable(() ->
@@ -53,25 +57,15 @@ public class DemoReactiveController {
     }
 
     @GetMapping("account/parallel")
-    public Flux<GlobalPosition> acountParallel() {
+    public Mono<List<GlobalPosition>> acountParallel() {
 
-        /**ThreadPoolTaskExecutor tf = new ThreadPoolTaskExecutor();
-         tf.setCorePoolSize(10);
-         tf.setMaxPoolSize(20);
-         tf.setQueueCapacity(40);
-         tf.setDaemon(false);
-         tf.setThreadGroupName("parallel-rx");
-         tf.setKeepAliveSeconds(5);*/
-        return Flux.create(s -> accountService.findByOwnerId("alan").subscribeOn(reactor.core.scheduler.Schedulers.newParallel("my-paralallel", 5))
+        return accountService.findByOwnerId("alan")
                 .flatMap(c -> {
                     System.out.println("Thread name " + Thread.currentThread().getName());
-                    return Flux.just(c).subscribeOn(reactor.core.scheduler.Schedulers.parallel()).map(ac -> accountService.globalPositionReactive(ac));
-                }).subscribe(f -> {
-                    System.out.println("Thread name " + Thread.currentThread().getName() + " - account " + f.getAccount().getId());
-                    s.next(f);
-                    s.complete();
-                })
-        );
+                    return Flux.just(c).subscribeOn(scheduler)
+                            .map(ac -> accountService.globalPositionReactive(ac));
+                }).collectList()
+                ;
     }
 
     @GetMapping("account/sync")
