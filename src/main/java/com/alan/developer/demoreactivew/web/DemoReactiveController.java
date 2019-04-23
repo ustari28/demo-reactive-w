@@ -1,5 +1,6 @@
 package com.alan.developer.demoreactivew.web;
 
+import com.alan.developer.demoreactivew.model.GlobalPosition;
 import com.alan.developer.demoreactivew.model.Greeting;
 import com.alan.developer.demoreactivew.service.AccountService;
 import io.reactivex.Flowable;
@@ -9,9 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Log
 @RequestMapping("/v1/demo")
@@ -21,6 +25,8 @@ public class DemoReactiveController {
     private Flowable flowable;
     @Autowired
     private AccountService accountService;
+    @Autowired
+    private Scheduler scheduler;
 
     private DemoReactiveController() {
         flowable = Flowable.fromCallable(() ->
@@ -31,10 +37,12 @@ public class DemoReactiveController {
     @GetMapping("parallel")
     public Mono<Void> parallel() {
         Flowable.range(1, 10)
-                .flatMap(v ->
-                        Flowable.just(v)
-                                .subscribeOn(Schedulers.computation())
-                                .map(w -> multix(w))
+                .flatMap(v -> {
+                            log.info("Thread name " + Thread.currentThread().getName());
+                            return Flowable.just(v)
+                                    .subscribeOn(Schedulers.computation())
+                                    .map(w -> multix(w));
+                        }
                 ).blockingSubscribe(x -> log.info("result:" + x));
         return Mono.empty();
     }
@@ -49,21 +57,24 @@ public class DemoReactiveController {
     }
 
     @GetMapping("account/parallel")
-    public Mono<Void> acountParallel() {
-        accountService.findByOwnerId("alan")
-                .flatMap(a -> Flowable.just(a)
-                        .subscribeOn(Schedulers.computation())
-                        .map(c -> accountService.globalPositionReactive(c)))
-                .blockingSubscribe();
-        return Mono.empty();
+    public Mono<List<GlobalPosition>> acountParallel() {
+
+        return accountService.findByOwnerId("alan")
+                .flatMap(c -> {
+                    System.out.println("Thread name " + Thread.currentThread().getName());
+                    return Flux.just(c).subscribeOn(scheduler)
+                            .map(ac -> accountService.globalPositionReactive(ac));
+                }).collectList()
+                ;
     }
 
     @GetMapping("account/sync")
     public Mono<Void> acountSync() {
         accountService.findByOwnerId("alan")
-                .subscribeOn(Schedulers.computation())
+                .subscribeOn(reactor.core.scheduler.Schedulers.elastic())
                 .map(c -> accountService.globalPositionSync(c))
-                .blockingSubscribe();
+                .blockLast();
+        //.blockingSubscribe();
         return Mono.empty();
     }
 

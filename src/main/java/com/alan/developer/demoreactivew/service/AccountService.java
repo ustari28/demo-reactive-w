@@ -4,16 +4,15 @@ import com.alan.developer.demoreactivew.model.Account;
 import com.alan.developer.demoreactivew.model.GlobalPosition;
 import com.alan.developer.demoreactivew.model.Loan;
 import com.alan.developer.demoreactivew.model.Mortage;
-import io.reactivex.Flowable;
 import lombok.extern.java.Log;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -23,15 +22,18 @@ public class AccountService {
 
     final Random random = new Random(System.currentTimeMillis());
 
-    public Flowable<Account> findByOwnerId(final String ownerId) {
+    public Flux<Account> findByOwnerId(final String ownerId) {
         final List<Account> accounts = new ArrayList<>();
-        IntStream.range(0, 10).forEach(x ->
-                accounts.add(Account.builder().Id(String.valueOf(x)).ownerId("500").amountAvailabe(new Random().nextDouble()).build())
-        );
-        return Flowable.fromIterable(accounts);
+
+        return Flux.create(s -> {
+            IntStream.range(0, 100).forEach(x ->
+                    s.next(Account.builder().Id(String.valueOf(x)).ownerId("500").amountAvailabe(new Random().nextDouble()).build())
+            );
+            s.complete();
+        });
     }
 
-    public GlobalPosition globalPositionSync(final Account account) {
+    public Mono<GlobalPosition> globalPositionSync(final Account account) {
         final List<Loan> loans = new ArrayList<>();
         log.info("Requesting loans");
         try {
@@ -55,21 +57,23 @@ public class AccountService {
                 .creationDate(LocalDateTime.now())
                 .ownerId(account.getOwnerId())
                 .years(30).build();
+        return Mono.create(s -> s.success(GlobalPosition.builder()
+                .account(account)
+                .loans(loans)
+                .mortage(mortage)
+                .build()));
+    }
+
+    public GlobalPosition globalPositionReactive(final Account account) {
+        log.info("Account " + account.getId());
+
+        List<Loan> loans = findLoansByOwnerId(account);
+        Mortage mortage = findMortageByOwnerId(account);
+
         return GlobalPosition.builder()
                 .account(account)
                 .loans(loans)
                 .mortage(mortage)
-                .build();
-    }
-
-    public GlobalPosition globalPositionReactive(final Account account) throws ExecutionException, InterruptedException {
-        CompletableFuture<Mortage> cMortage = CompletableFuture.supplyAsync(() -> findMortageByOwnerId(account));
-        CompletableFuture<List<Loan>> cLoans = CompletableFuture.supplyAsync(() -> findLoansByOwnerId(account));
-        CompletableFuture.allOf(cMortage).get();
-        return GlobalPosition.builder()
-                .account(account)
-                .loans(cLoans.get())
-                .mortage(cMortage.get())
                 .build();
     }
 
@@ -84,7 +88,8 @@ public class AccountService {
                 Loan.builder().ownerId(account.getOwnerId())
                         .amount(450D)
                         .creationDate(LocalDateTime.now())
-                        .years(10).build()).collect(Collectors.toList());
+                        .years(10).build()
+        ).collect(Collectors.toList());
     }
 
     public Mortage findMortageByOwnerId(final Account account) {
