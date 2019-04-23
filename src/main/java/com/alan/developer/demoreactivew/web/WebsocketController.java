@@ -3,7 +3,13 @@ package com.alan.developer.demoreactivew.web;
 import com.alan.developer.demoreactivew.model.EventVue;
 import com.alan.developer.demoreactivew.service.SocketHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,20 +21,23 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
-@RestController
-@RequestMapping("/ws/v1")
+@Log
+@Controller
 public class WebsocketController {
 
-    //@Autowired
-    //private SocketHandler socket;
-    @Autowired
-    private ObjectMapper mapper;
+    @MessageMapping("/chat.sendMessage")
+    @SendTo("/topic/public")
+    public EventVue sendMessage(@Payload EventVue chatMessage) {
+        return chatMessage;
+    }
 
-    @PostMapping("/send")
-    public EventVue events(EventVue event) throws IOException {
-        System.out.println("Entrando mensaje");
-        event.setDate(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        //session.sendMessage(new TextMessage(mapper.writeValueAsString(event)));
-        return event;
+    @MessageMapping("/chat.addUser")
+    @SendTo("/topic/public")
+    public EventVue addUser(@Payload EventVue chatMessage,
+                               SimpMessageHeaderAccessor headerAccessor) {
+        // Add username in web socket session
+        log.info("New message");
+        headerAccessor.getSessionAttributes().put("username", "Alan");
+        return chatMessage;
     }
 }

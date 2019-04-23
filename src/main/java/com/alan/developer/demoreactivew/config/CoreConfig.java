@@ -12,8 +12,8 @@ public class CoreConfig {
     public Scheduler scheduler() {
         return reactor.core.scheduler.Schedulers.newParallel("my-paralallel", 500);
     }
-    @Bean
+    /**@Bean
     public SocketHandler socketHandler() {
         return new SocketHandler();
-    }
+    }*/
 }
