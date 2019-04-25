@@ -2,8 +2,11 @@ package com.alan.developer.demoreactivew.web;
 
 import com.alan.developer.demoreactivew.model.EventVue;
 import com.alan.developer.demoreactivew.model.TaskVue;
+import com.alan.developer.demoreactivew.service.ProgressScheduledTask;
 import lombok.extern.java.Log;
 import org.apache.commons.lang3.RandomUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -18,6 +21,9 @@ import java.util.UUID;
 @Log
 @Controller
 public class WebsocketController {
+
+    @Autowired
+    private ProgressScheduledTask sheduler;
 
     @MessageMapping("/chat.sendMessage")
     @SendTo("/topic/public")
@@ -38,11 +44,12 @@ public class WebsocketController {
 
     @MessageMapping("/process/new")
     @SendToUser("/queue/tasks")
-    public TaskVue newTask(@Payload TaskVue task, SimpMessageHeaderAccessor headers) {
-        log.info("Session ID->" + headers.getSessionId());
+    public TaskVue newTask(@Payload TaskVue task, @Header("username") String username, SimpMessageHeaderAccessor headerAccessor) {
+        log.info("Session ID->" + username);
         final LocalDateTime current = LocalDateTime.now();
         final Long duration = RandomUtils.nextLong(2, 15);
-        return TaskVue.builder()
+        final TaskVue newTask = TaskVue.builder()
+                .owner(headerAccessor.getSessionId())
                 .uuid(UUID.randomUUID().toString())
                 .title(task.getTitle())
                 .description(task.getDescription())
@@ -51,5 +58,7 @@ public class WebsocketController {
                 .duration(duration)
                 .progress(1)
                 .build();
+        sheduler.addTask(newTask);
+        return newTask;
     }
 }

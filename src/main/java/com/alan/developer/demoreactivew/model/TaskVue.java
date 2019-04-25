@@ -6,6 +6,7 @@ import lombok.Data;
 @Builder
 @Data
 public class TaskVue {
+    private String owner;
     private String uuid;
     private String title;
     private String description;
