@@ -54,7 +54,8 @@ public class WebsocketController {
                 .title(task.getTitle())
                 .description(task.getDescription())
                 .start(current.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
-                .end(current.plusMinutes(duration).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
+                //.end(current.plusMinutes(duration).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
+                .end(-1L)
                 .duration(duration)
                 .progress(1)
                 .build();

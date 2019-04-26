@@ -10,6 +10,8 @@ import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,26 +28,28 @@ public class ProgressScheduledTask {
         log.info("Processing....");
         final Map<String, TaskVue> temporary = new ConcurrentHashMap();
         tasks.forEach((k, t) -> {
-            if (t.getProgress() < 100) {
-                TaskVue newTask = TaskVue.builder()
-                        .owner(t.getOwner())
-                        .uuid(t.getUuid())
-                        .title(t.getTitle())
-                        .description(t.getDescription())
-                        .start(t.getStart())
-                        .end(t.getEnd())
-                        .duration(t.getDuration())
-                        .progress(RandomUtils.nextInt(t.getProgress(), 101))
-                        .build();
+            Integer progress = RandomUtils.nextInt(t.getProgress(), 101);
+            TaskVue newTask = TaskVue.builder()
+                    .owner(t.getOwner())
+                    .uuid(t.getUuid())
+                    .title(t.getTitle())
+                    .description(t.getDescription())
+                    .start(t.getStart())
+                    .end(t.getEnd())
+                    .duration(t.getDuration())
+                    .progress(progress)
+                    .build();
+            if (progress < 100) {
                 temporary.put(k, newTask);
-                SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.create();
-                accessor.setSessionId(newTask.getOwner());
-                MessageHeaders headers = accessor.getMessageHeaders();
-
-                log.info("sending to ->" + newTask.getOwner());
-                messagingTemplate.convertAndSendToUser(newTask.getOwner(), "/queue/tasks", newTask, headers);
+            } else {
+                newTask.setEnd(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             }
+            SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.create();
+            accessor.setSessionId(newTask.getOwner());
+            MessageHeaders headers = accessor.getMessageHeaders();
+            messagingTemplate.convertAndSendToUser(newTask.getOwner(), "/queue/tasks", newTask, headers);
         });
+        tasks.clear();
         tasks.putAll(temporary);
 
     }
