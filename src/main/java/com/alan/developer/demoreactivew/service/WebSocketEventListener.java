@@ -25,23 +25,25 @@ public class WebSocketEventListener {
 
     /**
      * Lisnter listens new connection.
+     *
      * @param event Properties of connection.
      */
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectedEvent event) {
-        log.info("Received a new web socket connection");
+        log.info("Received a new web socket connection -> ");
+        //TODO: send a message to inform about a new user (brodcast)
     }
 
     /**
      * Listener listens disconnect event.
+     *
      * @param event Information about disconnected session.
      */
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
         StompHeaderAccessor headerAccessor = StompHeaderAccessor.wrap(event.getMessage());
-
         String username = (String) headerAccessor.getSessionAttributes().get("username");
-        if(username != null) {
+        if (username != null) {
             log.info("User Disconnected : " + username);
             EventVue chatMessage = EventVue.builder().idx(RandomUtils.nextInt()).title("new user->" + username)
                     .date(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()).build();
