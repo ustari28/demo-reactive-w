@@ -1,5 +1,15 @@
 server:
   port: 8090
+  error:
+    whitelabel:
+      enabled: false
 logging:
   level:
     root: info
+
+spring:
+  application:
+    name: demo
+    description: Demo reactive
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration

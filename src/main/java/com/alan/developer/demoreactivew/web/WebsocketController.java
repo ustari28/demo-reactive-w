@@ -22,8 +22,8 @@ import java.util.UUID;
 @Controller
 public class WebsocketController {
 
-    @Autowired
-    private ProgressScheduledTask sheduler;
+    //@Autowired
+    //private ProgressScheduledTask sheduler;
 
     @MessageMapping("/chat.sendMessage")
     @SendTo("/topic/public")
@@ -59,7 +59,7 @@ public class WebsocketController {
                 .duration(duration)
                 .progress(1)
                 .build();
-        sheduler.addTask(newTask);
+        //sheduler.addTask(newTask);
         return newTask;
     }
 }

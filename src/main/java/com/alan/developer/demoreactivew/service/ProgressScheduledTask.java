@@ -15,7 +15,7 @@ import java.time.ZoneId;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Component
+//@Component
 @Log
 public class ProgressScheduledTask {
 
