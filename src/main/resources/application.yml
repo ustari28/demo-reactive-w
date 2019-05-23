@@ -1,11 +1,11 @@
 server:
-  port: 8090
+  port: 8091
   error:
     whitelabel:
       enabled: false
 logging:
   level:
-    root: info
+    root: debug
 
 spring:
   application:
@@ -13,3 +13,6 @@ spring:
     description: Demo reactive
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
+app:
+  security:
+    auth-endpoint: http://127.0.0.1:8090/api/security/v1/validate

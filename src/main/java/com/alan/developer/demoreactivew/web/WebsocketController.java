@@ -2,10 +2,8 @@ package com.alan.developer.demoreactivew.web;
 
 import com.alan.developer.demoreactivew.model.EventVue;
 import com.alan.developer.demoreactivew.model.TaskVue;
-import com.alan.developer.demoreactivew.service.ProgressScheduledTask;
 import lombok.extern.java.Log;
 import org.apache.commons.lang3.RandomUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
